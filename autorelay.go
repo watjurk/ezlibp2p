@@ -10,7 +10,7 @@ import (
 )
 
 func NewPeerstoreRelayPeerSource(futureHost *host.Host) func(ctx context.Context, numPeers int) <-chan peer.AddrInfo {
-	var localID peer.ID
+	var localID peer.ID = ""
 	var h host.Host = nil
 
 	return func(ctx context.Context, numPeers int) <-chan peer.AddrInfo {

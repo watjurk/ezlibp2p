@@ -1,39 +1,50 @@
 package ezlibp2p
 
 import (
-	"errors"
+	"crypto/rand"
 	"os"
 
+	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/crypto"
 )
 
-// PersistantIdentity stores ID in the file system.
-type PersistantIdentity struct {
-	fileName string
-}
-
 const DEFAULT_ID_FILE_NAME = "libp2p_id"
 
-func NewPersistantIdentity() *PersistantIdentity {
-	return NewPersistantIdentityWithFileName(DEFAULT_ID_FILE_NAME)
+func PersistantIdentity() (libp2p.Option, error) {
+	return PersistantIdentityFileName(DEFAULT_ID_FILE_NAME)
 }
 
-func NewPersistantIdentityWithFileName(fileName string) *PersistantIdentity {
-	return &PersistantIdentity{
-		fileName: fileName,
+func PersistantIdentityFileName(fileName string) (libp2p.Option, error) {
+	_, err := os.Stat(fileName)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
 	}
-}
 
-var ErrNoIDFileFound = errors.New("No ID file found.")
-
-// ReadPrivKey returns the previously written PrivKey, if any.
-func (p *PersistantIdentity) ReadPrivKey() (crypto.PrivKey, error) {
-	_, err := os.Stat(p.fileName)
 	if os.IsNotExist(err) {
-		return nil, ErrNoIDFileFound
+		privKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+
+		err = writePrivKey(fileName, privKey)
+		if err != nil {
+			return nil, err
+		}
+
+		return libp2p.Identity(privKey), nil
 	}
 
-	keyStringBytes, err := os.ReadFile(p.fileName)
+	privKey, err := readPrivKey(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	return libp2p.Identity(privKey), nil
+
+}
+
+func readPrivKey(fileName string) (crypto.PrivKey, error) {
+	keyStringBytes, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -46,13 +57,12 @@ func (p *PersistantIdentity) ReadPrivKey() (crypto.PrivKey, error) {
 	return crypto.UnmarshalPrivateKey(keyBytes)
 }
 
-// WritePrivKey writes new or overrides the previous PrivKey.
-func (p *PersistantIdentity) WritePrivKey(key crypto.PrivKey) error {
+func writePrivKey(fileName string, key crypto.PrivKey) error {
 	keyBytes, err := crypto.MarshalPrivateKey(key)
 	if err != nil {
 		return err
 	}
 
 	keyString := crypto.ConfigEncodeKey(keyBytes)
-	return os.WriteFile(p.fileName, []byte(keyString), os.ModePerm)
+	return os.WriteFile(fileName, []byte(keyString), os.ModePerm)
 }
