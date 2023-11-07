@@ -16,7 +16,7 @@ type uvarintReader struct {
 	closer  io.Closer
 }
 
-func NewDelimitedReader(r io.Reader, maxSize int) ReadCloser {
+func NewReader(r io.Reader, maxSize int) ReadCloser {
 	var closer io.Closer
 	if c, ok := r.(io.Closer); ok {
 		closer = c

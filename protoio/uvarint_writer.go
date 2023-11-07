@@ -14,7 +14,7 @@ type uvarintWriter struct {
 	buffer       []byte
 }
 
-func NewDelimitedWriter(w io.Writer) WriteCloser {
+func NewWriter(w io.Writer) WriteCloser {
 	return &uvarintWriter{w, make([]byte, varint.MaxLenUvarint63), nil}
 }
 
